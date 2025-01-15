@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaUser } from "react-icons/fa";
 import Modal from "react-modal";
 import {
     Drawer,
@@ -35,6 +36,7 @@ const Team = () => {
         { id: 11, name: "Player 11", role: "Bowler", stats: "Wickets: 22, Economy: 6.8" },
     ];
 
+
     const openModal = (player) => {
         setSelectedPlayer(player);
         setModalIsOpen(true);
@@ -66,62 +68,63 @@ const Team = () => {
                                     <h3 className="text-xl font-bold mb-2">{player.name}</h3>
                                     <p className="text-gray-600 mb-4">{player.role}</p>
                                 </div>
-                                <button
-                                    onClick={() => openModal(player)}
-                                    className="bg-emerald-500 text-white font-semibold py-2 px-4 rounded hover:bg-emerald-600"
-                                >
-                                    See Details
-                                </button>
+                                <Drawer>
+                                    <DrawerTrigger asChild>
+                                        <button
+                                            onClick={() => openModal(player)}
+                                            className="bg-emerald-500 text-white font-semibold py-2 px-4 rounded hover:bg-emerald-600"
+                                        >
+                                            See Details
+                                        </button>
+                                    </DrawerTrigger>
+                                    {selectedPlayer && selectedPlayer.id === player.id && (
+                                        <DrawerContent>
+                                            <DrawerHeader>
+                                                <DrawerTitle>{selectedPlayer.name}</DrawerTitle>
+                                                <DrawerDescription>
+                                                    <strong>Role:</strong> {selectedPlayer.role}
+                                                    <br />
+                                                    <strong>Stats:</strong> {selectedPlayer.stats}
+                                                </DrawerDescription>
+                                            </DrawerHeader>
+                                            <DrawerFooter>
+                                                <Button>Submit</Button>
+                                                <DrawerClose asChild>
+                                                    <Button variant="outline" onClick={closeModal}>Cancel</Button>
+                                                </DrawerClose>
+                                            </DrawerFooter>
+                                        </DrawerContent>
+                                    )}
+                                </Drawer>
                             </div>
                         ))}
                     </div>
                 </div>
             </main>
 
-            {/* {selectedPlayer && (
-                <Modal
-                    isOpen={modalIsOpen}
-                    onRequestClose={closeModal}
-                    contentLabel="Player Details"
-                    className="bg-white rounded-lg shadow-xl w-11/12 md:w-1/2 mx-auto mt-20 p-6 relative"
-                    overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
-                >
-                    <h2 className="text-2xl font-bold mb-4">{selectedPlayer.name}</h2>
-                    <p className="text-lg mb-2">
-                        <strong>Role:</strong> {selectedPlayer.role}
-                    </p>
-                    <p className="text-lg mb-4">
-                        <strong>Stats:</strong> {selectedPlayer.stats}
-                    </p>
-                    <button
-                        onClick={closeModal}
-                        className="bg-emerald-500 text-white font-semibold py-2 px-4 rounded hover:bg-emerald-600 absolute top-4 right-4"
-                    >
-                        Close
-                    </button>
-                </Modal>
-            )} */}
-
             {selectedPlayer && (
-                <Drawer>
-                    <DrawerTrigger>Open</DrawerTrigger>
-                    <DrawerContent>
-                        <DrawerHeader>
-                            <DrawerTitle>{selectedPlayer.name}</DrawerTitle>
-                            <DrawerDescription> <strong>Role:</strong> {selectedPlayer.role}
-                                <strong>Stats:</strong> {selectedPlayer.stats}</DrawerDescription>
-                        </DrawerHeader>
-                        <DrawerFooter>
-                            <Button>Submit</Button>
-                            <DrawerClose>
-                                <Button variant="outline">Cancel</Button>
-                            </DrawerClose>
-                        </DrawerFooter>
-                    </DrawerContent>
+                <Drawer isOpen={modalIsOpen} onClose={closeModal}>
+                    <DrawerOverlay />
+                    <DrawerPortal>
+                        <DrawerContent>
+                            <DrawerHeader>
+                                <DrawerTitle>{selectedPlayer.name}</DrawerTitle>
+                                <DrawerDescription>
+                                    <strong>Role:</strong> {selectedPlayer.role}
+                                    <br />
+                                    <strong>Stats:</strong> {selectedPlayer.stats}
+                                </DrawerDescription>
+                            </DrawerHeader>
+                            <DrawerFooter>
+                                <Button>Submit</Button>
+                                <DrawerClose asChild>
+                                    <Button variant="outline" onClick={closeModal}>Cancel</Button>
+                                </DrawerClose>
+                            </DrawerFooter>
+                        </DrawerContent>
+                    </DrawerPortal>
                 </Drawer>
-
-            )
-            }
+            )}
 
 
             <footer className="text-center py-6 bg-gray-900 text-gray-400">
