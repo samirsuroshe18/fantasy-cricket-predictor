@@ -1,7 +1,10 @@
 import React from "react";
+import Navbar from "../components/navbar";
 
 const LandingPage = () => {
   return (
+    <>
+    <Navbar/>
     <div className="font-sans bg-gray-50">
       {/* Hero Section */}
       <section className="hero text-center py-20 bg-gradient-to-r from-green-400 to-cyan-400 text-white">
@@ -92,6 +95,7 @@ const LandingPage = () => {
         <p>&copy; 2025 Fantasy Cricket Predictor. All Rights Reserved.</p>
       </footer>
     </div>
+    </>
   );
 };
 
