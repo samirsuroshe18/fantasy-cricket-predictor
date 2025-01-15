@@ -1,5 +1,19 @@
 import React, { useState } from "react";
 import Modal from "react-modal";
+import {
+    Drawer,
+    DrawerPortal,
+    DrawerOverlay,
+    DrawerTrigger,
+    DrawerClose,
+    DrawerContent,
+    DrawerHeader,
+    DrawerFooter,
+    DrawerTitle,
+    DrawerDescription,
+} from "../components/ui/drawer"
+
+import { Button, buttonVariants } from "../components/ui/button"
 
 Modal.setAppElement("#root");
 
@@ -64,7 +78,7 @@ const Team = () => {
                 </div>
             </main>
 
-            {selectedPlayer && (
+            {/* {selectedPlayer && (
                 <Modal
                     isOpen={modalIsOpen}
                     onRequestClose={closeModal}
@@ -86,7 +100,29 @@ const Team = () => {
                         Close
                     </button>
                 </Modal>
-            )}
+            )} */}
+
+            {selectedPlayer && (
+                <Drawer>
+                    <DrawerTrigger>Open</DrawerTrigger>
+                    <DrawerContent>
+                        <DrawerHeader>
+                            <DrawerTitle>{selectedPlayer.name}</DrawerTitle>
+                            <DrawerDescription> <strong>Role:</strong> {selectedPlayer.role}
+                                <strong>Stats:</strong> {selectedPlayer.stats}</DrawerDescription>
+                        </DrawerHeader>
+                        <DrawerFooter>
+                            <Button>Submit</Button>
+                            <DrawerClose>
+                                <Button variant="outline">Cancel</Button>
+                            </DrawerClose>
+                        </DrawerFooter>
+                    </DrawerContent>
+                </Drawer>
+
+            )
+            }
+
 
             <footer className="text-center py-6 bg-gray-900 text-gray-400">
                 <p>&copy; 2025 Fantasy Cricket Predictor. All Rights Reserved.</p>
