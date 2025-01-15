@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard"
 import LandingPage from './pages/LandingPage'
+import Team from './pages/Team'
 
 function App() {
 
@@ -19,6 +20,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/LandingPage" element={<LandingPage />} />
             <Route path="/Dashboard" element={<Dashboard />} />
+            <Route path="/Team" element={<Team />} />
           </Routes>
         </div>
       </div>
