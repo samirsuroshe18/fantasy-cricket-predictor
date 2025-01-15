@@ -19,13 +19,13 @@ const Navbar = () => {
 
   const getLinkStyle = ({ isActive }) => {
     return isActive
-      ? "text-purple-500"
+      ? "text-green-500"
       : "text-white hover:text-purple-500 transition-colors";
   };
 
   return (
     <>
-      <nav className="bg-[#0f0f11] text-white flex justify-between items-center p-4">
+      <nav className=" bg-emerald-500 text-white flex justify-between items-center p-4">
         <Link to="/home">
           <div className="text-2xl font-bold flex justify-center items-center space-x-2">
             <img src={Logo} className='w-8 h-8 m-2' />
@@ -40,7 +40,7 @@ const Navbar = () => {
         </ul>
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 transition-colors px-4 py-2 rounded text-white"
+          className="bg-white hover:bg-green-400 transition-colors px-4 py-2 rounded text-green-700 hover:text-white"
         >
           Get Started
         </button>

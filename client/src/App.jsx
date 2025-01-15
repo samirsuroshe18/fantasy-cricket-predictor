@@ -5,7 +5,7 @@ import './App.css'
 import { Button } from "@/components/ui/button"
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home"
+import Dashboard from "./pages/Dashboard"
 import LandingPage from './pages/LandingPage'
 
 function App() {
@@ -16,9 +16,9 @@ function App() {
       <div className="flex">
         <div className="flex-1">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/landingPage" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/LandingPage" element={<LandingPage />} />
+            <Route path="/Dashboard" element={<Dashboard />} />
           </Routes>
         </div>
       </div>
