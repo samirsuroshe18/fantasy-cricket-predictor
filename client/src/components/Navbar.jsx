@@ -34,9 +34,9 @@ const Navbar = () => {
         </Link>
         <ul className="flex space-x-6 gap-12 text-md">
           <li><NavLink to="/" className={getLinkStyle}>Home</NavLink></li>
-          <li><NavLink to="/analytics" className={getLinkStyle}>Analytics</NavLink></li>
-          <li><NavLink to="/insights" className={getLinkStyle}>Insights</NavLink></li>
-          <li><NavLink to="/about" className={getLinkStyle}>About</NavLink></li>
+          <li><NavLink to="/Dashboard" className={getLinkStyle}>Matches</NavLink></li>
+          <li><NavLink to="/Squad" className={getLinkStyle}>Squads</NavLink></li>
+          <li><NavLink to="/Team" className={getLinkStyle}>Team</NavLink></li>
         </ul>
         <button
           onClick={() => setIsOpen(true)}
