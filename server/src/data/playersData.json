@@ -1,0 +1,47 @@
+[
+    {
+        "name": "Virat Kohli",
+        "country": "India",
+        "role": "Batsman",
+        "career_stats": {
+            "matches": "254",
+            "runs": "12169",
+            "hundreds": "43",
+            "fifties": "62",
+            "wickets": "4",
+            "average": "59.07",
+            "strike_rate": "93.84"
+        },
+        "teams": ["India", "Royal Challengers Bangalore"]
+    },
+    {
+        "name": "Joe Root",
+        "country": "England",
+        "role": "Batsman",
+        "career_stats": {
+            "matches": "165",
+            "runs": "10489",
+            "hundreds": "28",
+            "fifties": "56",
+            "wickets": "3",
+            "average": "50.11",
+            "strike_rate": "55.39"
+        },
+        "teams": ["England", "Yorkshire"]
+    },
+    {
+        "name": "M.S. Dhoni",
+        "country": "India",
+        "role": "Wicketkeeper-Batsman",
+        "career_stats": {
+            "matches": "350",
+            "runs": "10773",
+            "hundreds": "16",
+            "fifties": "73",
+            "wickets": "150",
+            "average": "50.57",
+            "strike_rate": "87.56"
+        },
+        "teams": ["India", "Chennai Super Kings"]
+    }
+]
