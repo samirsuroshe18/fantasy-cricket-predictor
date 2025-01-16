@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard"
 import LandingPage from './pages/LandingPage'
 import Team from './pages/Team'
+import Squad from './pages/Squad'
 
 function App() {
 
@@ -21,6 +22,7 @@ function App() {
             <Route path="/LandingPage" element={<LandingPage />} />
             <Route path="/Dashboard" element={<Dashboard />} />
             <Route path="/Team" element={<Team />} />
+            <Route path="/Squad" element={<Squad/>} />
           </Routes>
         </div>
       </div>
