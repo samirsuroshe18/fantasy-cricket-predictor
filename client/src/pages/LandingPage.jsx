@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../components/navbar";
+import { Link } from "react-router";
 
 const LandingPage = () => {
   return (
@@ -14,9 +15,11 @@ const LandingPage = () => {
             Leverage AI to craft your ultimate fantasy cricket team with data-driven
             predictions.
           </p>
-          <button className="bg-emerald-500 text-white font-semibold py-2 px-4 rounded hover:bg-emerald-600 mt-6">
+          <Link to="/matches">
+          <button className="bg-emerald-500 text-white font-semibold py-2 px-4 rounded hover:bg-emerald-600 mt-6"
+          >
             Get Started
-          </button>
+          </button></Link>
         </div>
       </section>
 
