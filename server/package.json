@@ -12,7 +12,8 @@
   "author": "Hack Horizon",
   "license": "ISC",
   "dependencies": {
-    "cassandra-driver": "^4.7.2",
+    "@datastax/astra-db-ts": "^1.5.0",
+    "axios": "^1.7.9",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
