@@ -6,7 +6,7 @@ import UpcomingMatch from "../components/Upcomingmatch";
 function Matches() {
   const { isApiCalled, setIsApiCalled } = useApiCall();
   const [matches, setMatches] = useState([]);
-  const API_KEY = "REMOVED";
+  const API_KEY=import.meta.env.VITE_CRICKDATA_KEY;
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -41,6 +41,7 @@ function Matches() {
   
         // Log the filtered matches
         console.log("Filtered matches:", filteredMatches);
+        console.log("first match id:",filteredMatches[0].id)
   
         // Set the filtered matches to state
         setMatches(filteredMatches);
@@ -62,6 +63,7 @@ function Matches() {
         matches.map((match) => (
           <UpcomingMatch
             key={match.id}
+            matchId={match.id}
             dateTimeGMT={match.dateTimeGMT}
             matchType={match.matchType}
             t1={match.t1}
@@ -69,7 +71,9 @@ function Matches() {
             t1img={match.t1img}
             t2img={match.t2img}
           />
+          
         ))
+        
       ) : (
         <p>No upcoming matches for today.</p>
       )}

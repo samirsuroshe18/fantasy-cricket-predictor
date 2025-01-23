@@ -24,6 +24,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/Dashboard" element={<Dashboard />} />
+            <Route path="/team/:matchId/:matchType" element={<Team />} />
             <Route path="/Team" element={<Team />} />
           </Routes>
         </div>
