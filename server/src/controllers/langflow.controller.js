@@ -1,8 +1,6 @@
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/customAsyncHandler.js';
-import astraDB from '../utils/astraDB.js';
-import playersData from '../data/playersData.json' assert { type: 'json' };
 import axios from "axios"
 import extractJson from '../utils/extractJson.js';
 import { astraConnection } from '../astraDB/astraDB.js';
@@ -416,46 +414,6 @@ const userPrompt = `
 ]
 `;
 
-
-const putData = asyncHandler(async (req, res) => {
-    const astraClient = await astraDB();
-    const truncateQuery = 'TRUNCATE default_keyspace.players;';
-    await astraClient.execute(truncateQuery);
-
-    for (const player of playersData) {
-        const query = `
-            INSERT INTO default_keyspace.players (id, name, country, role, career_stats, teams)
-            VALUES (uuid(), '${player.name}', '${player.country}', '${player.role}', 
-                    {'matches': '${player.career_stats.matches}', 'runs': '${player.career_stats.runs}', 
-                     'hundreds': '${player.career_stats.hundreds}', 'fifties': '${player.career_stats.fifties}', 
-                     'wickets': '${player.career_stats.wickets}', 'average': '${player.career_stats.average}', 
-                     'strike_rate': '${player.career_stats.strike_rate}'}, 
-                    ['${player.teams.join("', '")}'])
-        `;
-
-        await astraClient.execute(query);
-    }
-
-    await astraClient.shutdown();
-
-    return res.status(200).json(
-        new ApiResponse(200, {}, "Players data inserted successfully!")
-    )
-});
-
-const getData = asyncHandler(async (req, res) => {
-    const astraClient = await astraDB();
-
-    const query = 'SELECT * FROM default_keyspace.players';
-    const result = await astraClient.execute(query);
-
-    await astraClient.shutdown();
-
-    return res.status(200).json(
-        new ApiResponse(200, result, "Players data fetched successfully!")
-    )
-})
-
 const getInfo = asyncHandler(async (req, res) => {
 
     const payload = {
@@ -503,14 +461,17 @@ const getInfo = asyncHandler(async (req, res) => {
     
     console.log(playersWithTeamInfo);
 
-    // const collection = astraConnection.collection('players_collection');
-    // await collection.insertOne({...playersWithTeamInfo, date: new Date()});
+    const collection = astraConnection.collection('players_collection');
+    // await collection.deleteMany({});
+    await collection.insertOne({"playersInfo" : playersWithTeamInfo, date: new Date()});
 
     console.log("All players inserted successfully");
+
+    //TODO: call to langflow
 
     return res.status(200).json(
         new ApiResponse(200, parseJsonData, "Successfull")
     );
 })
 
-export { putData, getData, getInfo };
+export { getInfo };
