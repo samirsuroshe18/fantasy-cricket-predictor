@@ -11,6 +11,8 @@ import Team from './pages/Team'
 import Matches from './pages/Matches'
 import { ApiCallProvider } from './Context/apiCount'
 
+import Squad from './pages/Squad'
+import Prediction from './pages/Prediction'
 
 function App() {
 
@@ -26,6 +28,8 @@ function App() {
             <Route path="/Dashboard" element={<Dashboard />} />
             <Route path="/team/:matchId/:matchType" element={<Team />} />
             <Route path="/Team" element={<Team />} />
+            <Route path="/Squad" element={<Squad/>} />
+            <Route path="/prediction" element={<Prediction/>} />
           </Routes>
         </div>
       </div>
