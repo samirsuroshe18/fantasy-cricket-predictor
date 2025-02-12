@@ -1,7 +1,7 @@
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/customAsyncHandler.js';
-import axios from "axios"
+import axios from "axios";
 import extractJson from '../utils/extractJson.js';
 import { astraConnection } from '../astraDB/astraDB.js';
 
@@ -501,9 +501,18 @@ const getInfo = asyncHandler(async (req, res) => {
 
   console.log(LangflowParseJsonData);
 
+<<<<<<< HEAD
 
     return res.status(200).json(
         new ApiResponse(200, LangflowParseJsonData, "Successfull")
+=======
+    const result = extractJson(data);
+    console.log("data : ",result.codeBlocks[0].code.selected_team);
+    console.log("Text : ",result.remainingText);
+
+    return res.status(200).json(
+        new ApiResponse(200, result.codeBlocks[0].code.selected_team, "Successfull")
+>>>>>>> a4b1e66 (fixed the issue)
     );
 })
 

@@ -24,7 +24,24 @@ const Team = () => {
         console.error("Error fetching players data:", error);
         setLoading(false); // Set loading to false on error
       });
+<<<<<<< HEAD
   }, [matchId]); // Run useEffect when matchId changes
+=======
+  
+      console.log("Prediction response:", response.data);
+      // Extract the response data
+      const teamData = response.data.data;
+      console.log(teamData);
+  
+      // Navigate to another page and pass the response data as state
+      navigate("/prediction", { state: { teamData } });
+    } catch (error) {
+      console.error("Error during prediction:", error);
+    } finally {
+      setIsPredicting(false);
+    }
+  };
+>>>>>>> a4b1e66 (fixed the issue)
 
   if (loading || !playersData) {
     return <div>Loading...</div>;

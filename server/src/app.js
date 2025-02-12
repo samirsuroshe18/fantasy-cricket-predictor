@@ -5,7 +5,11 @@ import errorHandler from "./utils/errorHandler.js";
 
 const app = express();
 
-app.use(cors({origin: process.env.ORIGIN, credentials: true}));
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 //localhost: 8000 react on localhost:5173 both have different origin 
 //reach sends req to 8000 in abscnece of milldle ware this cross origin will throw error
 //in presence from any soucrce orgin reaquest can be handled.  ORIGIN is * i.e any request
