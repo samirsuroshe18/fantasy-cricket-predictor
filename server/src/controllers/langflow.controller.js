@@ -1,7 +1,7 @@
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/customAsyncHandler.js';
-import axios from "axios"
+import axios from "axios";
 import extractJson from '../utils/extractJson.js';
 import { astraConnection } from '../astraDB/astraDB.js';
 
@@ -415,7 +415,6 @@ const userPrompt = `
 `;
 
 const getInfo = asyncHandler(async (req, res) => {
-
     const payload = {
         model: "gpt-4o-mini",
         messages: [
@@ -469,8 +468,51 @@ const getInfo = asyncHandler(async (req, res) => {
 
     //TODO: call to langflow
 
+    console.log("Langlow ready to run")
+
+    const langflowPayload={"input_value": "message",
+        "output_type": "chat",
+        "input_type": "chat",
+        "tweaks": {
+      "AstraDBToolComponent-GQWsC": {},
+      "ParseData-YXIFZ": {},
+      "Prompt-iU5Mo": {},
+      "GoogleGenerativeAIModel-KfYw0": {},
+      "ChatInput-BVV84": {},
+      "ChatOutput-dLR7y": {}
+    }}
+    const langflowResponse=await axios.post({
+        method: "post",
+        url:process.env.LANGFLOW_BASE_URL,
+        headers:{
+            "Content-Type":"application/json",
+            //when there is only character no need to use - but only string then we can write without ""
+            Authorization:`Bearer ${process.env.LANGFLOW_ACCESS_TOKEN}`
+        },
+        data:langflowPayload
+    })
+    // for this payload body only we applied middle ware in the app.js file
+
+    console.log("langlflow Response: ",langflowResponse.data);
+
+    const jsonResponseString = langflowResponse.data?.outputs[0]?.outputs[0]?.results?.message?.data?.text;
+  const langflowExtractedJsonData = extractJson(jsonResponseString);
+  const LangflowParseJsonData = JSON.parse(langflowExtractedJsonData[0].code);
+
+  console.log(LangflowParseJsonData);
+
+<<<<<<< HEAD
+
     return res.status(200).json(
-        new ApiResponse(200, parseJsonData, "Successfull")
+        new ApiResponse(200, LangflowParseJsonData, "Successfull")
+=======
+    const result = extractJson(data);
+    console.log("data : ",result.codeBlocks[0].code.selected_team);
+    console.log("Text : ",result.remainingText);
+
+    return res.status(200).json(
+        new ApiResponse(200, result.codeBlocks[0].code.selected_team, "Successfull")
+>>>>>>> a4b1e66 (fixed the issue)
     );
 })
 
