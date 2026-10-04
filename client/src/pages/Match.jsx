@@ -102,7 +102,7 @@ const Match = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {squads.map((squad, index) => (
-          <Squad key={squad.team} team={match.teams[index]} players={squad.players} filter={filter} loaded={hasPlayers || !note} />
+          <Squad key={squad.team} team={match.teams[index]} players={squad.players} filter={filter} loaded={hasPlayers || !note.includes('cannot be loaded')} />
         ))}
       </div>
     </div>

@@ -363,8 +363,8 @@ describe('one match', () => {
     });
 
     test('figures stop being fetched before the budget is used up, and the page is told', async () => {
-        // the list, the squads and two players' figures: 15 are kept back for lists and squads
-        process.env.CRICKET_DAILY_BUDGET = '19';
+        // the list (1), the squads (10) and two players' figures: 15 are kept back from figures
+        process.env.CRICKET_DAILY_BUDGET = '28';
 
         const found = await getMatch(LIVE_ID);
         const players = found.squads.flatMap((squad) => squad.players);
@@ -372,7 +372,7 @@ describe('one match', () => {
         expect(players.filter((player) => player.figuresLoaded)).toHaveLength(2);
         expect(players.filter((player) => !player.figuresLoaded).every((player) => player.figures === null)).toBe(true);
         expect(found.note).toBe('The figures of 3 players could not be loaded, so they are scored as players without figures.');
-        expect(await used()).toBe(4);
+        expect(await used()).toBe(13);
     });
 
     test('when the squads cannot be loaded the match is shown without them', async () => {
@@ -384,22 +384,22 @@ describe('one match', () => {
         expect(found.note).toBe('The squads cannot be loaded right now.');
     });
 
-    test('squads that are not announced yet are asked for again after an hour, not after six', async () => {
+    test('squads that are not announced yet are asked for again after six hours, not after a day', async () => {
         answers.match_squad = () => answer([]);
         await getMatch(LIVE_ID);
 
         const kept = await Cache.findOne({ key: `squad:${LIVE_ID}` });
 
-        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(HOUR);
+        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(6 * HOUR);
     });
 
-    test('the squads are kept for six hours and figures for fourteen days', async () => {
+    test('the squads are kept for a day and figures for fourteen days', async () => {
         await getMatch(LIVE_ID);
 
         const squad = await Cache.findOne({ key: `squad:${LIVE_ID}` });
         const figures = await Cache.findOne({ key: 'player:s1' });
 
-        expect(squad.freshUntil.getTime() - squad.fetchedAt.getTime()).toBe(6 * HOUR);
+        expect(squad.freshUntil.getTime() - squad.fetchedAt.getTime()).toBe(24 * HOUR);
         expect(figures.freshUntil.getTime() - figures.fetchedAt.getTime()).toBe(14 * 24 * HOUR);
     });
 });
@@ -459,7 +459,7 @@ describe('after the review', () => {
     });
 
     test('once no more figures can be fetched today, a view costs no request and no count for any player', async () => {
-        process.env.CRICKET_DAILY_BUDGET = '19';
+        process.env.CRICKET_DAILY_BUDGET = '28';
         await getMatch(LIVE_ID);
         global.fetch.mockClear();
         const counts = jest.spyOn(Usage, 'findOneAndUpdate');
@@ -500,8 +500,8 @@ describe('after the review', () => {
     });
 
     test('squads cannot use up the requests the list needs', async () => {
-        // 8 a day: the last 5 are kept for the list, so squads stop at 3 and figures are not fetched
-        process.env.CRICKET_DAILY_BUDGET = '8';
+        // 30 a day: the last 5 are kept for the list, and squads cost 10 each, so two can be fetched
+        process.env.CRICKET_DAILY_BUDGET = '30';
         const ids = ['m-1', 'm-2', 'm-3'];
         answers.cricScore = () => answer(ids.map((id, index) => fixture({ id, dateTimeGMT: soon(5 + index) })));
 
@@ -510,21 +510,21 @@ describe('after the review', () => {
         expect([one, two].every((found) => found.squads[0].players.length === 3)).toBe(true);
         expect(three.squads.map((squad) => squad.players)).toEqual([[], []]);
         expect(three.note).toBe('The squads cannot be loaded right now.');
-        expect(await used()).toBe(3);
+        expect(await used()).toBe(25);
 
         await age('matches', 1000);
         const { live } = await listMatches();
         expect(live.note).toBe('');
-        expect(await used()).toBe(4);
+        expect(await used()).toBe(26);
     });
 
-    test('squads of which one team is announced are asked for again after an hour', async () => {
+    test('squads of which one team is announced are asked for again after six hours', async () => {
         answers.match_squad = () => answer([SQUADS[0]]);
         await getMatch(LIVE_ID);
 
         const kept = await Cache.findOne({ key: `squad:${LIVE_ID}` });
 
-        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(HOUR);
+        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(6 * HOUR);
     });
 
     test('a match the source lists twice, or under the id of a sample match, is listed once', async () => {
@@ -534,5 +534,66 @@ describe('after the review', () => {
 
         expect(matches.map((match) => match.id)).toEqual([LIVE_ID, 'sample-t20-1', 'sample-t20-2', 'sample-odi-1']);
         expect(matches[1].isSample).toBe(true);
+    });
+});
+
+describe('what the source charges', () => {
+    test('a request can cost more than one of the day\'s requests, and is refused when fewer are left', async () => {
+        process.env.CRICKET_DAILY_BUDGET = '25';
+
+        await ask('match_squad', { id: LIVE_ID }, { cost: 10 });
+        await ask('match_squad', { id: LIVE_ID }, { cost: 10 });
+        await expect(ask('match_squad', { id: LIVE_ID }, { cost: 10 })).rejects.toMatchObject({ reason: 'budget' });
+
+        expect(await used()).toBe(20);
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        // a request that costs one still fits
+        await expect(ask('cricScore')).resolves.toBeDefined();
+        expect(await used()).toBe(21);
+    });
+
+    test('requests of ten that arrive together cannot pass the budget', async () => {
+        process.env.CRICKET_DAILY_BUDGET = '35';
+
+        const results = await Promise.allSettled(Array.from({ length: 8 }, () => ask('match_squad', { id: LIVE_ID }, { cost: 10 })));
+
+        expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(3);
+        expect(await used()).toBe(30);
+    });
+
+    test('the count follows what the source itself says was used today, when that is more', async () => {
+        const told = (hitsToday) => () => ({ ok: true, status: 200, json: async () => ({ status: 'success', data: [fixture()], info: { hitsToday, hitsLimit: 100 } }) });
+
+        answers.cricScore = told(40);
+        await ask('cricScore');
+        expect(await used()).toBe(40);
+
+        // a lower number, or something that is not one, changes nothing
+        answers.cricScore = told(7);
+        await ask('cricScore');
+        expect(await used()).toBe(41);
+        answers.cricScore = told('many');
+        await ask('cricScore');
+        answers.cricScore = told(1e9);
+        await ask('cricScore');
+        expect(await used()).toBe(43);
+    });
+
+    test('opening a live match costs the list, ten for the squads and one for each player', async () => {
+        await getMatch(LIVE_ID);
+
+        expect(await used()).toBe(16);
+    });
+
+    test('squads are asked for within three days of the start only: earlier they are not announced', async () => {
+        answers.cricScore = () => answer([fixture({ id: 'far-1', dateTimeGMT: soon(73) }), fixture({ id: 'near-1', dateTimeGMT: soon(71) })]);
+
+        const far = await getMatch('far-1');
+        const near = await getMatch('near-1');
+
+        expect(far.squads.map((squad) => squad.players)).toEqual([[], []]);
+        expect(far.note).toBe('Squads are announced closer to the match. They are shown here from three days before its start.');
+        expect(near.squads[0].players).toHaveLength(3);
+        expect(pathsCalled().filter((path) => path === 'match_squad')).toHaveLength(1);
     });
 });
