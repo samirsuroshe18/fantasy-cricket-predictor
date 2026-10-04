@@ -5,6 +5,8 @@ import app from './app.js';
 import { User } from './models/user.model.js';
 import { Usage } from './models/usage.model.js';
 import { Cache } from './models/cache.model.js';
+import { Team } from './models/team.model.js';
+import { startDemo } from './scripts/demoData.js';
 
 const PORT = process.env.PORT || 3005;
 
@@ -17,7 +19,12 @@ if (!process.env.ACCESS_TOKEN_SECRET) {
 connectDB().then(async () => {
     // accounts, daily counts and the cache rely on unique indexes: they are in place before the
     // first request
-    await Promise.all([User.init(), Usage.init(), Cache.init()]);
+    await Promise.all([User.init(), Usage.init(), Cache.init(), Team.init()]);
+
+    // visitors change the demo account while trying things out; a fresh start puts it back
+    if (process.env.SEED_ON_START === 'true') {
+        await startDemo();
+    }
 
     app.listen(PORT, process.env.SERVER_HOST, () => {
         console.log(`Server is running on port ${PORT}`);
