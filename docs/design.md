@@ -4,21 +4,18 @@ The app suggests a fantasy eleven for an upcoming cricket match. It began as a
 personal project of the team in January 2025. This document describes the
 completed version.
 
-## 1. Where the project stands
+## 1. Where the project started
 
-The first version has a landing page, a list of upcoming matches, a squad page
-and the start of a server.
+The first version had a landing page, a list of upcoming matches and a squad
+page, and the start of a server. To become a complete app it still needed:
 
-| Problem | Effect |
-|---|---|
-| Unresolved merge conflicts are committed in the server and in the squad page; the server imports a file that is not in the repository | Neither part starts |
-| The server ignores the chosen match and sends a fixed squad to a language model, asking it to make up statistics where it has none | The "prediction" is invented |
-| The result is then passed to a flow on the hosted Langflow service and stored in an Astra database | Langflow's hosted service was shut down in April 2026; free Astra databases are paused and deleted when idle |
-| The result page shows one fixed card of a footballer | There is no prediction to see |
-| The dashboard lists made-up matches with random percentages | Nothing on it is true |
-| The pages call the cricket API from the browser with the key in the page | Anyone can read the key; every visitor spends the 100 requests a day |
-| Dependency folders and a database credential bundle were committed | Removed from the history of the new repository |
-| No tests, a one-line README | Nothing guards or explains the behaviour |
+- a prediction that follows from the chosen match and from real figures
+- a place for the result: the team, its captain and the reasons for it
+- the cricket data fetched by the server, so the key stays private and the
+  day's requests are not spent by every visitor
+- a replacement for the hosted Langflow service, which was shut down in April
+  2026
+- accounts, saved teams, tests and a README
 
 ## 2. What the completed app does
 
@@ -30,14 +27,12 @@ and a written explanation. They can change the team and save it.
 
 | Topic | Decision |
 |---|---|
-| Repository | New repository `fantasy-cricket-predictor` under samirsuroshe18, team history kept, dependency folders and the credential bundle removed from every commit |
 | Cricket data | cricketdata.org, called by the server only, cached in MongoDB, with a daily budget; built-in sample matches keep the app usable without it |
 | Prediction | Players are scored by rules from their career figures; the server builds the best valid eleven; Gemini explains it and cannot change it |
 | Accounts | Email accounts with verification and password reset, and a demo account |
 | Saved teams | A user saves, renames, edits and deletes teams |
-| Look | The current look is kept; what is broken is fixed |
+| Look | The look of the first version is kept |
 | Out of scope | Fantasy points after a match, contests, player credits, other sports |
-| Delivery | Two stages (section 12) |
 
 ## 3. Accounts
 
@@ -247,16 +242,7 @@ limits, saved teams and who may reach them, and the demo data. The web app is
 checked by building it, linting it and walking through every page in a
 browser on a desktop and a phone width.
 
-## 12. Stages
-
-1. **Accounts, cricket data, matches and squads**: sections 3 and 4, the
-   scores of section 5 shown on the squad page, and their pages.
-2. **Prediction, explanation and saved teams**: sections 6 to 8, the demo
-   data, their pages and the README.
-
-Each stage has its own plan, tests, review and pull request.
-
-## 13. Deployment
+## 12. Deployment
 
 Server on Render, web app on Vercel, database on MongoDB Atlas, email through
 Brevo. `client/vercel.json` forwards `/api` to the server.
