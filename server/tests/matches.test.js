@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import request from 'supertest';
 import app from '../src/app.js';
-import { restSource } from '../src/cricket/source.js';
+import { resetSource } from '../src/cricket/source.js';
 
 const matches = '/api/v1/matches';
 
@@ -32,7 +32,7 @@ describe('the list of matches', () => {
 
     test('never shows the key of the cricket source', async () => {
         process.env.CRICKET_API_KEY = 'a-secret-key';
-        restSource(0);
+        resetSource();
         global.fetch = jest.fn(async () => ({ ok: false, status: 500, json: async () => ({}) }));
         const log = jest.spyOn(console, 'log').mockImplementation(() => {});
 

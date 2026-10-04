@@ -45,8 +45,8 @@ const WEIGHTS = {
 
 // player: { role, figures }. Answers { batting, bowling, score, hasFigures }.
 const scoreOf = (player, format) => {
-    const measure = MEASURES[format] || MEASURES.t20;
-    const weight = WEIGHTS[player.role] || WEIGHTS.bat;
+    const measure = Object.hasOwn(MEASURES, format) ? MEASURES[format] : MEASURES.t20;
+    const weight = Object.hasOwn(WEIGHTS, player.role) ? WEIGHTS[player.role] : WEIGHTS.bat;
     const hasFigures = amount(player.figures?.batting?.innings) > 0 || amount(player.figures?.bowling?.innings) > 0;
 
     if (!hasFigures) {

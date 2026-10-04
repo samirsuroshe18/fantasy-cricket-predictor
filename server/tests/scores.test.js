@@ -93,5 +93,8 @@ describe('whatever the figures are', () => {
 
         expect(scoreOf(player('bat', figures), 'hundred').score).toBe(72);
         expect(scoreOf(player('coach', figures), 't20').score).toBe(72);
+        // names every object has are not roles or formats either
+        expect(scoreOf(player('__proto__', figures), 'constructor').score).toBe(72);
+        expect(scoreOf(player('toString', figures), 'valueOf').score).toBe(72);
     });
 });

@@ -1,6 +1,6 @@
 import { Cache } from '../models/cache.model.js';
 
-// a value nobody asked for in this long is removed
+// a value that was not fetched again in this long is removed
 const KEPT_MS = 60 * 24 * 60 * 60 * 1000;
 
 // what is being loaded right now, so visitors who ask for the same thing together
@@ -49,10 +49,11 @@ const cached = async (key, lifetime, loader) => {
     }
 };
 
-// the values kept under these keys that are still fresh, as a Map by key
-const freshOf = async (keys) => {
-    const kept = await Cache.find({ key: { $in: keys }, freshUntil: { $gt: new Date() } }).lean();
-    return new Map(kept.map((entry) => [entry.key, entry.value]));
+// what is kept under these keys, read together: a Map of key to { value, fresh }
+const keptOf = async (keys) => {
+    const now = new Date();
+    const kept = await Cache.find({ key: { $in: keys } }).lean();
+    return new Map(kept.map((entry) => [entry.key, { value: entry.value, fresh: entry.freshUntil > now }]));
 };
 
-export { cached, freshOf }
+export { cached, keptOf }

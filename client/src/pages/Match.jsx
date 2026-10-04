@@ -13,7 +13,7 @@ const FILTERS = [{ key: 'all', short: 'All' }, ...ROLES];
 // the best first; players with the same score by name
 const byScore = (a, b) => b.score - a.score || a.name.localeCompare(b.name);
 
-const Squad = ({ team, players, filter }) => {
+const Squad = ({ team, players, filter, loaded }) => {
   const shown = players.filter((player) => filter === 'all' || player.role === filter).sort(byScore);
 
   return (
@@ -24,7 +24,7 @@ const Squad = ({ team, players, filter }) => {
         <span className="ml-auto text-sm text-gray-500 whitespace-nowrap">{players.length} players</span>
       </div>
       {shown.length === 0
-        ? <p className="text-sm text-gray-500 py-6 text-center">{players.length ? 'No players of this kind.' : 'The squad is not announced yet.'}</p>
+        ? <p className="text-sm text-gray-500 py-6 text-center">{players.length ? 'No players of this kind.' : (loaded ? 'The squad is not announced yet.' : 'The squad could not be loaded.')}</p>
         : <ul className="divide-y divide-gray-100">{shown.map((player) => <PlayerRow key={player.id} player={player} />)}</ul>}
     </section>
   );
@@ -69,7 +69,7 @@ const Match = () => {
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <FormatBadge format={match.format} />
           {match.isSample && <SampleBadge />}
-          <span className="text-sm text-gray-500">{dateTimeLabel(match.startsAt)} · starts in {startsIn(match.startsAt)}</span>
+          <span className="text-sm text-gray-500">{dateTimeLabel(match.startsAt)} · {new Date(match.startsAt).getTime() > Date.now() ? `starts in ${startsIn(match.startsAt)}` : 'has started'}</span>
         </div>
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800 break-words">{match.name}</h1>
         {match.venue && <p className="text-gray-600 mt-1">{match.venue}</p>}
@@ -96,7 +96,7 @@ const Match = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {squads.map((squad, index) => (
-          <Squad key={squad.team} team={match.teams[index]} players={squad.players} filter={filter} />
+          <Squad key={squad.team} team={match.teams[index]} players={squad.players} filter={filter} loaded={hasPlayers || !note} />
         ))}
       </div>
     </div>

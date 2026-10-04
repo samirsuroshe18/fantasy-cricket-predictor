@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { Cache } from '../src/models/cache.model.js';
 import { Usage } from '../src/models/usage.model.js';
-import { ask, restSource } from '../src/cricket/source.js';
+import { ask, resetSource, restSource } from '../src/cricket/source.js';
 import { cached } from '../src/cricket/cache.js';
 import { getMatch, listMatches } from '../src/cricket/index.js';
 import { sampleMatch, sampleMatches } from '../src/cricket/sample.js';
@@ -52,10 +52,11 @@ beforeEach(() => {
         calls.push(url);
         return answers[url.pathname.replace('/v1/', '')](url);
     });
-    restSource(0);
+    resetSource();
 });
 
 afterEach(() => {
+    jest.restoreAllMocks();
     delete process.env.CRICKET_API_KEY;
     delete process.env.CRICKET_DAILY_BUDGET;
     delete global.fetch;
@@ -370,7 +371,7 @@ describe('one match', () => {
 
         expect(players.filter((player) => player.figuresLoaded)).toHaveLength(2);
         expect(players.filter((player) => !player.figuresLoaded).every((player) => player.figures === null)).toBe(true);
-        expect(found.note).toBe('The figures of 3 players could not be loaded today, so they are scored as players without figures.');
+        expect(found.note).toBe('The figures of 3 players could not be loaded, so they are scored as players without figures.');
         expect(await used()).toBe(4);
     });
 
@@ -400,5 +401,138 @@ describe('one match', () => {
 
         expect(squad.freshUntil.getTime() - squad.fetchedAt.getTime()).toBe(6 * HOUR);
         expect(figures.freshUntil.getTime() - figures.fetchedAt.getTime()).toBe(14 * 24 * HOUR);
+    });
+});
+
+describe('after the review', () => {
+    const refusal = (reason) => ({ ok: true, status: 200, json: async () => ({ status: 'failure', reason }) });
+    const failing = () => ({ ok: false, status: 500, json: async () => ({}) });
+    const idOf = (url) => url.searchParams.get('id');
+    const playersAsked = () => calls.filter((url) => url.pathname.endsWith('players_info')).map(idOf);
+
+    test('a refusal of one thing is not a failure of the source: it is not left alone after it', async () => {
+        answers.players_info = () => refusal('ERR: player not found');
+
+        await expect(ask('players_info', { id: 's1' })).rejects.toMatchObject({ reason: 'refused' });
+        await expect(ask('cricScore')).resolves.toBeDefined();
+
+        answers.players_info = () => ({ ok: false, status: 404, json: async () => ({}) });
+        await expect(ask('players_info', { id: 's1' })).rejects.toMatchObject({ reason: 'refused' });
+        await expect(ask('cricScore')).resolves.toBeDefined();
+    });
+
+    test('a player the source refuses is asked for once, and the other requests go on', async () => {
+        answers.players_info = (url) => (idOf(url) === 's2' ? refusal('ERR: player not found') : answer(playerInfo(idOf(url))));
+
+        const first = await getMatch(LIVE_ID);
+        await getMatch(LIVE_ID);
+        await getMatch(LIVE_ID);
+
+        expect(playersAsked().filter((id) => id === 's2')).toHaveLength(1);
+        expect(playersAsked()).toHaveLength(5);
+        const players = first.squads.flatMap((squad) => squad.players);
+        expect(players.find((player) => player.id === 's2')).toMatchObject({ figures: null, figuresLoaded: false });
+        expect(players.filter((player) => player.figuresLoaded)).toHaveLength(4);
+        expect(first.note).toBe('The figures of 1 player could not be loaded, so they are scored as players without figures.');
+        // remembered for six hours
+        const kept = await Cache.findOne({ key: 'player:s2' });
+        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(6 * HOUR);
+    });
+
+    test('a player whose request failed is not asked for again for an hour', async () => {
+        answers.players_info = (url) => (idOf(url) === 'p1' ? failing() : answer(playerInfo(idOf(url))));
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        await getMatch(LIVE_ID);
+        const askedFirst = playersAsked().length;
+
+        resetSource();
+        await getMatch(LIVE_ID);
+        resetSource();
+        await getMatch(LIVE_ID);
+
+        expect(playersAsked().filter((id) => id === 'p1')).toHaveLength(1);
+        // whoever was skipped while the source was left alone is fetched on the next visit, once
+        expect(askedFirst).toBeLessThanOrEqual(5);
+        expect(playersAsked()).toHaveLength(5);
+        const kept = await Cache.findOne({ key: 'player:p1' });
+        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(HOUR);
+    });
+
+    test('once no more figures can be fetched today, a view costs no request and no count for any player', async () => {
+        process.env.CRICKET_DAILY_BUDGET = '19';
+        await getMatch(LIVE_ID);
+        global.fetch.mockClear();
+        const counts = jest.spyOn(Usage, 'findOneAndUpdate');
+        const reads = jest.spyOn(Cache, 'findOne');
+
+        const found = await getMatch(LIVE_ID);
+
+        expect(global.fetch).not.toHaveBeenCalled();
+        expect(counts).not.toHaveBeenCalled();
+        // the list and the squads; the players' figures are read together
+        expect(reads).toHaveBeenCalledTimes(2);
+        expect(found.squads.flatMap((squad) => squad.players).filter((player) => player.figuresLoaded)).toHaveLength(2);
+    });
+
+    test('figures that are too old are still used while new ones cannot be fetched', async () => {
+        await getMatch(LIVE_ID);
+        await Cache.updateMany({ key: /^player:/ }, { $set: { freshUntil: new Date(Date.now() - 1000) } });
+        answers.players_info = failing;
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+
+        const found = await getMatch(LIVE_ID);
+
+        const players = found.squads.flatMap((squad) => squad.players);
+        expect(players.every((player) => player.figuresLoaded && player.figures.batting.innings === 50)).toBe(true);
+        expect(found.note).toBe('');
+
+        // the old figures are not lost by the attempt, and it is not repeated at every visit
+        resetSource();
+        const before = playersAsked().length;
+        const again = await getMatch(LIVE_ID);
+        const asked = playersAsked().slice(before - 1);
+        resetSource();
+        const third = await getMatch(LIVE_ID);
+
+        expect([...again.squads, ...third.squads].flatMap((squad) => squad.players).every((player) => player.figures?.batting.innings === 50)).toBe(true);
+        expect(new Set(asked).size).toBe(asked.length);
+        expect(new Set(playersAsked().slice(before - 1)).size).toBe(playersAsked().length - before + 1);
+    });
+
+    test('squads cannot use up the requests the list needs', async () => {
+        // 8 a day: the last 5 are kept for the list, so squads stop at 3 and figures are not fetched
+        process.env.CRICKET_DAILY_BUDGET = '8';
+        const ids = ['m-1', 'm-2', 'm-3'];
+        answers.cricScore = () => answer(ids.map((id, index) => fixture({ id, dateTimeGMT: soon(5 + index) })));
+
+        const [one, two, three] = [await getMatch('m-1'), await getMatch('m-2'), await getMatch('m-3')];
+
+        expect([one, two].every((found) => found.squads[0].players.length === 3)).toBe(true);
+        expect(three.squads.map((squad) => squad.players)).toEqual([[], []]);
+        expect(three.note).toBe('The squads cannot be loaded right now.');
+        expect(await used()).toBe(3);
+
+        await age('matches', 1000);
+        const { live } = await listMatches();
+        expect(live.note).toBe('');
+        expect(await used()).toBe(4);
+    });
+
+    test('squads of which one team is announced are asked for again after an hour', async () => {
+        answers.match_squad = () => answer([SQUADS[0]]);
+        await getMatch(LIVE_ID);
+
+        const kept = await Cache.findOne({ key: `squad:${LIVE_ID}` });
+
+        expect(kept.freshUntil.getTime() - kept.fetchedAt.getTime()).toBe(HOUR);
+    });
+
+    test('a match the source lists twice, or under the id of a sample match, is listed once', async () => {
+        answers.cricScore = () => answer([fixture(), fixture({ dateTimeGMT: soon(9) }), fixture({ id: 'sample-t20-1' })]);
+
+        const { matches } = await listMatches();
+
+        expect(matches.map((match) => match.id)).toEqual([LIVE_ID, 'sample-t20-1', 'sample-t20-2', 'sample-odi-1']);
+        expect(matches[1].isSample).toBe(true);
     });
 });
