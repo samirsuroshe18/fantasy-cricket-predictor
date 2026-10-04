@@ -253,6 +253,17 @@ describe('checking a team someone made', () => {
         expect(checkTeam(team({ captainId: ['x'] }), squads)).toBe('The captain must be one of the eleven');
     });
 
+    test('a player of an unknown role counts as a batter, as in the scores', () => {
+        const pool = ROLES.flatMap((kind) => Array.from({ length: 10 }, (_, n) => p(`${kind}${n}`, n % 2, kind, 50)));
+        const coach = { ...p('coach', 0, 'coach', 50) };
+        const of = (kind, number) => pool.filter((player) => player.role === kind).slice(0, number).map((player) => player.id);
+        const everyone = squadsOf([...pool, coach]);
+
+        // without a keeper the coach does not make it a team; in place of a batter the coach does
+        expect(checkTeam({ playerIds: ['coach', ...of('bat', 4), ...of('ar', 2), ...of('bowl', 4)], captainId: 'coach', viceCaptainId: 'bat0' }, everyone)).toBe('A team needs 1 to 4 wicket-keepers');
+        expect(checkTeam({ playerIds: ['coach', ...of('wk', 1), ...of('bat', 2), ...of('ar', 3), ...of('bowl', 4)], captainId: 'coach', viceCaptainId: 'wk0' }, everyone)).toBeNull();
+    });
+
     test('a swap within the rules passes', () => {
         const out = good.players.find((player) => player.role === 'bat');
         const into = others.find((player) => player.role === 'bat' && player.team === out.team);

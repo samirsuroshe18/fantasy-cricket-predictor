@@ -12,6 +12,7 @@ const { User } = await import('../src/models/user.model.js');
 const { Usage } = await import('../src/models/usage.model.js');
 const { rebuildDemo, startDemo } = await import('../src/scripts/demoData.js');
 const { DEMO_EMAIL } = await import('../src/utils/demo.js');
+const { forgetFailures } = await import('../src/prediction/explanation.js');
 const { createUser, loggedIn, PASSWORD } = await import('./helpers.js');
 
 const MATCH = 'sample-t20-1';
@@ -25,9 +26,10 @@ beforeEach(() => {
     assistantReady.mockReset();
     assistantReady.mockReturnValue(true);
     generateJson.mockResolvedValue(TEXT);
+    forgetFailures();
 });
 
-const SETTINGS = ['DAILY_PREDICTION_LIMIT', 'MAX_TEAMS', 'MAX_DEMO_TEAMS', 'ACCOUNT_RATE_LIMIT', 'WRITE_RATE_LIMIT'];
+const SETTINGS = ['DAILY_PREDICTION_LIMIT', 'DEMO_CONNECTION_PREDICTION_LIMIT', 'MAX_TEAMS', 'MAX_DEMO_TEAMS', 'ACCOUNT_RATE_LIMIT', 'WRITE_RATE_LIMIT', 'WRITE_CONNECTION_RATE_LIMIT'];
 afterEach(() => {
     SETTINGS.forEach((name) => delete process.env[name]);
     jest.restoreAllMocks();
@@ -127,6 +129,39 @@ describe('a prediction', () => {
         expect((await ask('203.0.113.10')).status).toBe(200);
         expect((await ask('203.0.113.10')).status).toBe(429);
         expect((await ask('203.0.113.11')).status).toBe(200);
+    });
+
+    test('made-up visitors of the demo account from one caller are capped by the address they really come from', async () => {
+        await rebuildDemo();
+        process.env.DAILY_PREDICTION_LIMIT = '1';
+        process.env.DEMO_CONNECTION_PREDICTION_LIMIT = '3';
+        const agent = await demoAgent();
+        const ask = (address, connection = '198.51.100.61') => agent.post(prediction()).set('X-Forwarded-For', `${address}, ${connection}`);
+
+        const statuses = [];
+        for (let attempt = 0; attempt < 5; attempt += 1) statuses.push((await ask(`203.0.113.${20 + attempt}`)).status);
+
+        expect(statuses).toEqual([200, 200, 200, 429, 429]);
+        // nothing is remembered about the visitors that were refused
+        expect(await Usage.countDocuments({ key: /^predict:demo:/ })).toBe(3);
+        expect((await ask('203.0.113.40', '198.51.100.62')).status).toBe(200);
+    });
+
+    test('changes from one caller are limited by the address they really come from, whatever visitor they claim to be', async () => {
+        await rebuildDemo();
+        process.env.ACCOUNT_RATE_LIMIT = '100';
+        process.env.WRITE_CONNECTION_RATE_LIMIT = '2';
+        const agent = await demoAgent();
+
+        const statuses = [];
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+            statuses.push((await agent.post(prediction()).set('X-Forwarded-For', `203.0.113.${50 + attempt}, 198.51.100.63`)).status);
+        }
+        const reading = await agent.get(teams).set('X-Forwarded-For', '203.0.113.60, 198.51.100.63');
+
+        expect(statuses).toEqual([200, 200, 429, 429]);
+        // reading is not limited
+        expect(reading.status).toBe(200);
     });
 
     test('a match that does not exist is not found, and does not count', async () => {
@@ -237,8 +272,9 @@ describe('saving a team', () => {
         }
     });
 
-    test('an account holds a limited number of teams, also when saves arrive together', async () => {
+    test('an account holds a limited number of teams, and saves that arrive together get exactly the places that are left', async () => {
         process.env.MAX_TEAMS = '3';
+        await Team.init();
         const user = await createUser();
         // one listening server, so requests can really be under way together
         const server = app.listen(0);
@@ -247,17 +283,29 @@ describe('saving a team', () => {
             await agent.post('/api/v1/users/login').send({ email: user.email, password: PASSWORD });
             const data = await predicted(agent);
             const save = (n) => agent.post(teams).send(bodyOf(data, { name: `Team ${n}` }));
+            const held = () => Team.countDocuments({ user: user._id });
 
+            // two held, one place left, three saves together: one gets it
             await save(1);
-            const results = await Promise.all([save(2), save(3), save(4), save(5)]);
+            await save(2);
+            const lastPlace = await Promise.all([save(3), save(4), save(5)]);
+            expect(lastPlace.map((res) => res.status).sort()).toEqual([201, 409, 409]);
+            expect(await held()).toBe(3);
 
-            expect(await Team.countDocuments({ user: user._id })).toBeLessThanOrEqual(3);
-            expect(results.filter((res) => res.status === 201).length).toBeLessThanOrEqual(2);
-
+            // none held, five saves together: three get a place
             await Team.deleteMany({ user: user._id });
-            for (const n of [1, 2, 3]) expect((await save(n)).status).toBe(201);
-            const late = await save(4);
+            const fromEmpty = await Promise.all([1, 2, 3, 4, 5].map(save));
+            expect(fromEmpty.filter((res) => res.status === 201)).toHaveLength(3);
+            expect(await held()).toBe(3);
+
+            const late = await save(6);
             expect([late.status, late.body.message]).toEqual([409, 'You can save at most 3 teams. Delete one to save another.']);
+
+            // a place that was given up can be taken again
+            const first = (await agent.get(teams)).body.data.teams[0];
+            await agent.delete(`${teams}/${first._id}`);
+            expect((await save(7)).status).toBe(201);
+            expect(await held()).toBe(3);
         } finally {
             await new Promise((resolve) => server.close(resolve));
         }
@@ -433,6 +481,8 @@ describe('the demo account', () => {
 
         expect(await startDemo(async () => { throw new Error('no database'); })).toBe(false);
         expect(await startDemo()).toBe(true);
+        // the places of the demo's teams are taken in order, so a visitor's team gets the next one
+        expect((await Team.find({ isDemo: true }).sort({ slot: 1 })).map((team) => team.slot)).toEqual([0, 1, 2]);
         expect(log.mock.calls.flat().join(' ')).toContain('no database');
     });
 

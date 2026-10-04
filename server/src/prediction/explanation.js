@@ -111,9 +111,18 @@ const keyOf = (match, eleven) => {
 
 class NoExplanation extends Error {}
 
+// A team whose explanation could not be written is not asked for again for a while:
+// a user would wait for the same failure, and an answer that was no explanation would
+// use up the site's day. Kept in memory; a restart may ask once more.
+const RETRY_AFTER_MS = 5 * 60 * 1000;
+const failedUntil = new Map();
+
+const forgetFailures = () => failedUntil.clear();
+
 const write = async (match, eleven) => {
     if (await take(SITE_KEY, siteLimit()) === null) {
-        throw new NoExplanation('the site has asked for its explanations of the day');
+        // not a failure of this team: it is tried again as soon as the site may ask
+        throw Object.assign(new NoExplanation('the site has asked for its explanations of the day'), { limit: true });
     }
 
     let raw;
@@ -136,10 +145,21 @@ const write = async (match, eleven) => {
 // null when there is none. Kept for six hours, so asking again costs nothing and
 // gives the same text.
 const explain = async (match, eleven) => {
+    const key = keyOf(match, eleven);
+
     try {
-        const { value } = await cached(keyOf(match, eleven), LIFETIME_MS, async () => {
+        const { value } = await cached(key, LIFETIME_MS, async () => {
             if (!assistantReady()) throw new NoExplanation('not set up');
-            return write(match, eleven);
+            if (Date.now() < (failedUntil.get(key) || 0)) throw new NoExplanation('failed a moment ago');
+
+            try {
+                const explanation = await write(match, eleven);
+                failedUntil.delete(key);
+                return explanation;
+            } catch (error) {
+                if (!error.limit) failedUntil.set(key, Date.now() + RETRY_AFTER_MS);
+                throw error;
+            }
         });
         return value;
     } catch (error) {
@@ -158,4 +178,4 @@ const keptExplanation = async (match, eleven) => {
     }
 };
 
-export { explain, keptExplanation, promptFor, cleanExplanation, SCHEMA }
+export { explain, keptExplanation, forgetFailures, promptFor, cleanExplanation, SCHEMA }

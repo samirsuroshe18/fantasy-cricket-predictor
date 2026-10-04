@@ -44,6 +44,7 @@ const buildTeam = (plan, index) => {
         explanation: null,
         isEdited: Boolean(plan.swapCaptain),
         isDemo: true,
+        slot: index,
         createdAt: savedAt,
         updatedAt: savedAt,
     };

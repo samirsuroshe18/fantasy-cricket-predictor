@@ -61,8 +61,9 @@ player's figures are a request of their own. So:
   shown, and the page says so. Many visitors opening the same match cause one
   request for each thing.
 - An explanation is kept for six hours for each team of a match. A user can
-  ask for 20 predictions a day, and the whole site asks Gemini at most 200
-  times a day. When there is no text, the team is shown without it.
+  ask for 20 predictions a day, and the whole site has at most 200
+  explanations written a day. When there is no text, the team is shown
+  without it, and it is not asked for again for five minutes.
 
 ## Demo account
 
@@ -122,6 +123,7 @@ npm install
 | `BREVO_API_KEY`, `MAIL_FROM` | Optional. Send email through the Brevo HTTPS API instead of SMTP |
 | `SEED_ON_START` | `true` rebuilds the demo account every time the server starts |
 | `DAILY_PREDICTION_LIMIT`, `SITE_EXPLANATION_LIMIT` | Optional. Predictions a user may ask for in a day (`20`), explanations the whole site may ask for in a day (`200`) |
+| `DEMO_CONNECTION_PREDICTION_LIMIT` | Optional. Predictions all visitors of the demo account behind one real address may ask for in a day, default `300` |
 | `MAX_TEAMS`, `MAX_DEMO_TEAMS` | Optional. Teams an account may hold, default `50`; the demo account `20` |
 | `DAILY_MAIL_LIMIT` | Optional. Mails the whole site may send in a day, default `250` |
 | `CONNECTION_IP_HEADER` | Optional. A header in which the host reports the caller's address and which a caller cannot set, for example `cf-connecting-ip` on Render |
@@ -130,7 +132,8 @@ The request limits have defaults that suit a small site. Each can be changed
 with a setting of its own: `ACCOUNT_RATE_LIMIT`,
 `ACCOUNT_CONNECTION_RATE_LIMIT`, `ACCOUNT_GUESS_RATE_LIMIT`,
 `ACCOUNT_EMAIL_RATE_LIMIT`, `ACCOUNT_MAIL_RATE_LIMIT`, `RESEND_RATE_LIMIT`,
-`WRITE_RATE_LIMIT`, `PUBLIC_RATE_LIMIT` and `PUBLIC_CONNECTION_RATE_LIMIT`.
+`WRITE_RATE_LIMIT`, `WRITE_CONNECTION_RATE_LIMIT`, `PUBLIC_RATE_LIMIT` and
+`PUBLIC_CONNECTION_RATE_LIMIT`.
 `CORS_ORIGIN` names another origin that may call the server from a browser;
 the web app itself needs none.
 

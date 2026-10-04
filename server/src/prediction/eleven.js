@@ -19,7 +19,12 @@ const tenthsOf = (player) => (Number.isFinite(player.score) && player.score > 0 
 // the best first; between equal scores the name decides, then the id
 const byScore = (a, b) => tenthsOf(b) - tenthsOf(a) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
 
-const roleIndex = (player) => Math.max(ROLES.findIndex((role) => role.key === player.role), 0);
+// a role that is not one of the four counts as a batter, as in the scores
+const BATTER = 1;
+const roleIndex = (player) => {
+    const index = ROLES.findIndex((role) => role.key === player.role);
+    return index < 0 ? BATTER : index;
+};
 
 // Whatever the best team is, the players it takes of one role from one side are the
 // best of that role on that side. So it is enough to try every way of dividing the

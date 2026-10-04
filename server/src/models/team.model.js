@@ -66,6 +66,17 @@ const teamSchema = new Schema({
         type: Boolean,
         default: false,
     },
+
+    // The place this team takes among its user's teams, from 0 up to the most a user
+    // may hold. No two teams of a user have the same place, which is what keeps saves
+    // that arrive together from passing the limit.
+    slot: {
+        type: Number,
+        required: true,
+        min: 0,
+    },
 }, { timestamps: true, minimize: false });
+
+teamSchema.index({ user: 1, slot: 1 }, { unique: true });
 
 export const Team = mongoose.model("Team", teamSchema);

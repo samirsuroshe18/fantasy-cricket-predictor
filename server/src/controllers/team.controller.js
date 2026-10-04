@@ -20,6 +20,35 @@ const maxTeams = (user) => (user.isDemo
 
 const tooMany = (max) => new ApiError(409, `You can save at most ${max} teams. Delete one to save another.`);
 
+const DUPLICATE_KEY = 11000;
+const PLACE_ATTEMPTS = 10;
+
+// Saves the team in the lowest free place of its user. When another save took that
+// place in the same moment, the unique index refuses this one and the next free place
+// is tried; when no place is free, the limit is reached.
+const createInFreePlace = async (user, fields) => {
+    const max = maxTeams(user);
+
+    for (let attempt = 0; attempt < PLACE_ATTEMPTS; attempt += 1) {
+        const taken = new Set((await Team.find({ user: user._id }).select('slot').lean()).map((team) => team.slot));
+
+        if (taken.size >= max) {
+            throw tooMany(max);
+        }
+
+        let slot = 0;
+        while (taken.has(slot)) slot += 1;
+
+        try {
+            return await Team.create({ ...fields, user: user._id, slot });
+        } catch (error) {
+            if (error.code !== DUPLICATE_KEY) throw error;
+        }
+    }
+
+    throw new ApiError(409, "Several teams are being saved at once. Please try again.");
+};
+
 // the team as a client gets it: with the eleven as players, in the order a team is listed
 const present = (team) => ({
     _id: team._id,
@@ -72,6 +101,7 @@ const createTeam = asyncHandler(async (req, res) => {
         throw new ApiError(400, problem);
     }
 
+    // refused before any more work is done; the place itself is taken when the team is saved
     const max = maxTeams(req.user);
     if (await Team.countDocuments({ user: req.user._id }) >= max) {
         throw tooMany(max);
@@ -81,8 +111,7 @@ const createTeam = asyncHandler(async (req, res) => {
     const suggested = bestEleven(squads);
     const isSuggested = !suggested.problem && sameTeam(team, { ...suggested, playerIds: suggested.players.map((player) => player.id) });
 
-    const created = await Team.create({
-        user: req.user._id,
+    const created = await createInFreePlace(req.user, {
         name,
         match: found.match,
         squads,
@@ -91,12 +120,6 @@ const createTeam = asyncHandler(async (req, res) => {
         isEdited: !isSuggested,
         isDemo: Boolean(req.user.isDemo),
     });
-
-    // saves that arrive together can each pass the check above: the one that went over is taken back
-    if (await Team.countDocuments({ user: req.user._id }) > max) {
-        await Team.deleteOne({ _id: created._id });
-        throw tooMany(max);
-    }
 
     return res.status(201).json(new ApiResponse(201, { team: present(created) }, "Team saved"));
 });

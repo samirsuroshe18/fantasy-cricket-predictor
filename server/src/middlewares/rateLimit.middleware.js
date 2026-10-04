@@ -59,11 +59,14 @@ const resendLimiter = [byConnection, limiter(setting('RESEND_RATE_LIMIT', 5), (r
 // Everything a logged-in user changes; reading is not limited. The demo account is
 // shared by every visitor, so its limit is kept per visitor: one visitor cannot use up
 // the allowance of the others. Use after verifyJwt.
-const writeLimiter = limiter(
-    setting('WRITE_RATE_LIMIT', 120),
-    (req) => `write:${req.user?._id}:${req.user?.isDemo ? visitorOf(req) : ''}`,
-    { skip: (req) => skippedInTests() || req.method === 'GET' }
-);
+// The visitor's address can be made up by a direct caller, so the address the request
+// really came from is counted first, as for the accounts.
+const whenChanging = { skip: (req) => skippedInTests() || req.method === 'GET' };
+
+const writeLimiter = [
+    limiter(setting('WRITE_CONNECTION_RATE_LIMIT', 600), (req) => `write-connection:${connectionOf(req)}`, whenChanging),
+    limiter(setting('WRITE_RATE_LIMIT', 120), (req) => `write:${req.user?._id}:${req.user?.isDemo ? visitorOf(req) : ''}`, whenChanging),
+];
 
 // Matches and squads are open to everyone. Through the web app every request arrives
 // from the web app's host, so the limit by connection is a very wide one.

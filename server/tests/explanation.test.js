@@ -5,7 +5,7 @@ const generateJson = jest.fn();
 const assistantReady = jest.fn(() => true);
 jest.unstable_mockModule('../src/prediction/gemini.js', () => ({ generateJson, assistantReady }));
 
-const { cleanExplanation, explain, promptFor, SCHEMA } = await import('../src/prediction/explanation.js');
+const { cleanExplanation, explain, forgetFailures, promptFor, SCHEMA } = await import('../src/prediction/explanation.js');
 const { bestEleven } = await import('../src/prediction/eleven.js');
 const { withScores } = await import('../src/prediction/scores.js');
 const { sampleMatch } = await import('../src/cricket/sample.js');
@@ -27,6 +27,7 @@ beforeEach(() => {
     assistantReady.mockReset();
     assistantReady.mockReturnValue(true);
     generateJson.mockResolvedValue(good());
+    forgetFailures();
 });
 
 afterEach(() => {
@@ -152,23 +153,45 @@ describe('explaining a team', () => {
         expect(await asked()).toBe(0);
     });
 
-    test('when the model fails there is no text, the request is not counted, and the next request tries again', async () => {
+    const later = (minutes) => {
+        const now = Date.now();
+        jest.spyOn(Date, 'now').mockImplementation(() => now + minutes * 60 * 1000);
+    };
+
+    test('when the model fails there is no text and the request is not counted; it is tried again after five minutes, not before', async () => {
         jest.spyOn(console, 'log').mockImplementation(() => {});
         generateJson.mockRejectedValueOnce(new Error('503 overloaded'));
 
         expect(await explain(match, eleven)).toBeNull();
+        expect(await explain(match, eleven)).toBeNull();
+        expect(generateJson).toHaveBeenCalledTimes(1);
         expect(await asked()).toBe(0);
+
+        later(6);
         expect(await explain(match, eleven)).toEqual(good());
         expect(await asked()).toBe(1);
     });
 
-    test('an answer that is no explanation gives no text, and counts: the model was asked', async () => {
+    test('an answer that is no explanation gives no text, counts, and is not asked for again at once', async () => {
         generateJson.mockResolvedValueOnce(null).mockResolvedValueOnce({ summary: '' });
 
         expect(await explain(match, eleven)).toBeNull();
         expect(await explain(match, eleven)).toBeNull();
+        expect(generateJson).toHaveBeenCalledTimes(1);
+        later(6);
+        expect(await explain(match, eleven)).toBeNull();
+        expect(generateJson).toHaveBeenCalledTimes(2);
         expect(await asked()).toBe(2);
         expect(await Cache.countDocuments({ key: /^explanation:/ })).toBe(0);
+    });
+
+    test('a failure for one team does not hold back another', async () => {
+        jest.spyOn(console, 'log').mockImplementation(() => {});
+        generateJson.mockRejectedValueOnce(new Error('down'));
+        const { match: other, squads: otherSquads } = sampleMatch('sample-odi-1');
+
+        expect(await explain(match, eleven)).toBeNull();
+        expect(await explain(other, bestEleven(withScores(otherSquads, other.format)))).not.toBeNull();
     });
 
     test('once the site has asked as often as it may in a day, teams come without text', async () => {
