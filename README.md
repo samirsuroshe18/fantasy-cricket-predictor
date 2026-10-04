@@ -5,8 +5,20 @@ score for every player, the best team the rules allow with a captain and a
 vice-captain, and a short explanation of the choice. Change the team to your
 liking and save it.
 
+**Live demo:** <https://fantasy-cricket-predictor.vercel.app> — use "Try the
+demo account" on the login page. The first request after a quiet spell can
+take up to a minute, while the server wakes up.
+
 We started it as a personal project in January 2025 and completed it
 afterwards. [docs/design.md](docs/design.md) describes the design.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![The suggested eleven with its explanation](docs/screenshots/prediction.png) | ![Upcoming matches](docs/screenshots/matches.png) |
+| ![A match with both squads and every player's score](docs/screenshots/match.png) | ![Changing a saved team within the rules](docs/screenshots/editor.png) |
+| ![A saved team](docs/screenshots/team.png) | ![The landing page](docs/screenshots/home.png) |
 
 ## What it does
 
