@@ -64,4 +64,13 @@ const scoreOf = (player, format) => {
     };
 };
 
-export { scoreOf, WITHOUT_FIGURES }
+// the squads with every player's score: score, battingScore, bowlingScore, hasFigures
+const withScores = (squads, format) => squads.map((squad) => ({
+    team: squad.team,
+    players: squad.players.map((player) => {
+        const { batting, bowling, score, hasFigures } = scoreOf(player, format);
+        return { ...player, score, battingScore: batting, bowlingScore: bowling, hasFigures };
+    }),
+}));
+
+export { scoreOf, withScores, WITHOUT_FIGURES }
