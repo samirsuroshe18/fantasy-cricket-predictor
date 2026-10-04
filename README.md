@@ -263,3 +263,7 @@ Built by Samir Suroshe
 ([@tanishqbuilds](https://github.com/tanishqbuilds)), Mohit Dhangar
 ([@mohit45v](https://github.com/mohit45v)) and Pranay Sanap
 ([@pranaysanap](https://github.com/pranaysanap)).
+
+## License
+
+[MIT](LICENSE)
