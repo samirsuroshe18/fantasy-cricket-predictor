@@ -258,7 +258,8 @@ docs/
 
 ## Team
 
-Built by team Hack Horizon: Mohit Dhangar
-([@mohit45v](https://github.com/mohit45v)), Pranay Sanap, Samir Suroshe
-([@samirsuroshe18](https://github.com/samirsuroshe18)) and Tanishq Kulkarni
-([@TanishqMSD](https://github.com/TanishqMSD)).
+Built by Samir Suroshe
+([@samirsuroshe18](https://github.com/samirsuroshe18)), Tanishq Kulkarni
+([@tanishqbuilds](https://github.com/tanishqbuilds)), Mohit Dhangar
+([@mohit45v](https://github.com/mohit45v)) and Pranay Sanap
+([@pranaysanap](https://github.com/pranaysanap)).

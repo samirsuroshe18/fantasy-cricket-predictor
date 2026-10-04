@@ -9,7 +9,7 @@
     "dev": "nodemon src/index.js",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
   },
-  "author": "Hack Horizon",
+  "author": "Samir Suroshe, Tanishq Kulkarni, Mohit Dhangar, Pranay Sanap",
   "license": "ISC",
   "dependencies": {
     "@google/genai": "^2.27.0",
