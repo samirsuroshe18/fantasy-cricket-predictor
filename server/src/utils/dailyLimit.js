@@ -5,16 +5,16 @@ const DUPLICATE_KEY = 11000;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Takes one from today's allowance of a key. Returns how many are left, or null when
-// the allowance is used up. The check and the count are one step in the database, so
-// requests that arrive together cannot pass the limit.
-const take = async (key, limit) => {
+// Takes one (or amount) from today's allowance of a key. Returns how many are left, or
+// null when the allowance does not cover it. The check and the count are one step in
+// the database, so requests that arrive together cannot pass the limit.
+const take = async (key, limit, amount = 1) => {
     const day = today();
 
     try {
         const usage = await Usage.findOneAndUpdate(
-            { key, day, count: { $lt: limit } },
-            { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date(Date.now() + KEPT_MS) } },
+            { key, day, count: { $lte: limit - amount } },
+            { $inc: { count: amount }, $setOnInsert: { expiresAt: new Date(Date.now() + KEPT_MS) } },
             { upsert: true, new: true }
         );
 
@@ -26,8 +26,8 @@ const take = async (key, limit) => {
         if (error.code !== DUPLICATE_KEY) throw error;
 
         const usage = await Usage.findOneAndUpdate(
-            { key, day, count: { $lt: limit } },
-            { $inc: { count: 1 } },
+            { key, day, count: { $lte: limit - amount } },
+            { $inc: { count: amount } },
             { new: true }
         );
 
@@ -39,4 +39,8 @@ const take = async (key, limit) => {
 const giveBack = (key) =>
     Usage.updateOne({ key, day: today(), count: { $gt: 0 } }, { $inc: { count: -1 } });
 
-export { take, giveBack }
+// raises today's count of a key to the given number, when it is lower
+const raiseTo = (key, count) =>
+    Usage.updateOne({ key, day: today(), count: { $lt: count } }, { $set: { count } });
+
+export { take, giveBack, raiseTo }

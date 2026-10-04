@@ -7,9 +7,15 @@ import { isSampleId, sampleMatch, sampleMatches } from './sample.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const LIST_LIFETIME_MS = HOUR_MS;
-const SQUAD_LIFETIME_MS = 6 * HOUR_MS;
-// squads are announced shortly before a match: an incomplete answer is asked for again sooner
-const NO_SQUAD_LIFETIME_MS = HOUR_MS;
+// The source charges ten of the day's requests for the squads of a match, so they are
+// kept long, and asked for only when they are likely to be there: squads are announced
+// shortly before a match.
+const SQUAD_COST = 10;
+const SQUAD_LIFETIME_MS = 24 * HOUR_MS;
+// an incomplete answer is asked for again sooner
+const NO_SQUAD_LIFETIME_MS = 6 * HOUR_MS;
+const SQUADS_FROM_MS = 72 * HOUR_MS;
+const TOO_EARLY = 'Squads are announced closer to the match. They are shown here from three days before its start.';
 const FIGURES_LIFETIME_MS = 14 * 24 * HOUR_MS;
 // a player the source would not give figures of is not asked for again for this long
 const REFUSED_LIFETIME_MS = 6 * HOUR_MS;
@@ -155,12 +161,16 @@ const getMatch = async (id, now = Date.now()) => {
     const match = (await listMatches(now)).matches.find((entry) => entry.id === id);
     if (!match) return null;
 
+    if (Date.parse(match.startsAt) - now > SQUADS_FROM_MS) {
+        return { match, squads: toSquads([], match), note: TOO_EARLY };
+    }
+
     let squads;
     try {
         const kept = await cached(
             `squad:${id}`,
             (value) => (value.every((squad) => squad.players.length) ? SQUAD_LIFETIME_MS : NO_SQUAD_LIFETIME_MS),
-            async () => toSquads(await ask('match_squad', { id }, { reserve: SQUAD_RESERVE }), match)
+            async () => toSquads(await ask('match_squad', { id }, { reserve: SQUAD_RESERVE, cost: SQUAD_COST }), match)
         );
         // a copy: the figures are added to it
         squads = kept.value.map((squad) => ({ team: squad.team, players: squad.players.map((player) => ({ ...player })) }));

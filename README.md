@@ -49,13 +49,16 @@ bowling` (at most 100). A player without figures scores 35.
 
 ## Living within a free plan
 
-The free plan of the cricket source allows 100 requests a day, and every
-player's figures are a request of their own. So:
+The free plan of the cricket source allows 100 requests a day. The squads of
+a match cost 10 of them, and every player's figures are a request of their
+own. So:
 
 - Only the server talks to the source; the key never reaches the browser.
 - Everything is kept in the database: the list of matches for an hour, squads
-  for six hours, a player's figures for fourteen days.
-- The server stops at 90 requests a day. The last 15 are kept from figures and
+  for a day, a player's figures for fourteen days. Squads are asked for only
+  from three days before a match, when they are likely to be announced.
+- The server stops at 90 requests a day, and follows the source's own count
+  when that is higher. The last 15 are kept from figures and
   the last 5 from squads, so the list of matches can always be fetched.
 - When the source fails or the day's requests are used up, what was kept is
   shown, and the page says so. Many visitors opening the same match cause one

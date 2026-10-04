@@ -1,6 +1,6 @@
 // The only code that calls the cricket source (cricketdata.org). Every request is
 // counted against the day's budget before it is made.
-import { take } from '../utils/dailyLimit.js';
+import { raiseTo, take } from '../utils/dailyLimit.js';
 
 const BASE_URL = 'https://api.cricapi.com/v1';
 const BUDGET_KEY = 'cricket';
@@ -49,15 +49,30 @@ const resetSource = () => {
 const canAsk = ({ reserve = 0 } = {}) =>
     hasKey() && Date.now() >= restingUntil && !(spent.day === today() && reserve >= spent.reserve);
 
+// Every answer says how many requests the key has used today. When that is more than
+// was counted here (the key was used elsewhere, or a request cost more than expected),
+// the count follows it.
+const followSource = async (info) => {
+    const used = info?.hitsToday;
+
+    if (Number.isInteger(used) && used > 0 && used <= 100000) {
+        await raiseTo(BUDGET_KEY, used).catch(() => {});
+    }
+};
+
 // Asks the source and returns the data of its answer. reserve keeps a part of the
-// day's budget back from this request, for requests that matter more.
-const ask = async (path, params = {}, { reserve = 0 } = {}) => {
+// day's budget back from this request, for requests that matter more. cost is what
+// the source charges for the request: some cost more than one.
+const ask = async (path, params = {}, { reserve = 0, cost = 1 } = {}) => {
     if (!hasKey()) throw new SourceError('no-key');
     if (Date.now() < restingUntil) throw new SourceError('resting');
 
     const allowed = budget() - reserve;
-    if (allowed <= 0 || await take(BUDGET_KEY, allowed) === null) {
-        spent = { day: today(), reserve: spent.day === today() ? Math.min(spent.reserve, reserve) : reserve };
+    if (allowed < cost || await take(BUDGET_KEY, allowed, cost) === null) {
+        // remembered for requests of one only: a dearer request can be refused while they still fit
+        if (cost === 1) {
+            spent = { day: today(), reserve: spent.day === today() ? Math.min(spent.reserve, reserve) : reserve };
+        }
         throw new SourceError('budget');
     }
 
@@ -74,6 +89,7 @@ const ask = async (path, params = {}, { reserve = 0 } = {}) => {
         if (!response.ok) throw new Error(`answered ${response.status}`);
 
         const body = await response.json();
+        await followSource(body?.info);
         if (body?.status !== 'success') {
             refused = body?.status === 'failure' && typeof body.reason === 'string' && !ABOUT_THE_KEY.test(body.reason);
             throw new Error('refused the request');

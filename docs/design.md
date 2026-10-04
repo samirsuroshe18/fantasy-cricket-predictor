@@ -71,13 +71,17 @@ cricketdata.org (CricAPI v1), with the key in `CRICKET_API_KEY` on the server.
 | What | Kept for |
 |---|---|
 | The list of upcoming matches | 1 hour |
-| The squads of a match | 6 hours (1 hour while one of them is not announced) |
+| The squads of a match | 24 hours (6 hours while one of them is not announced) |
 | The career figures of a player | 14 days |
 
 - A match is listed when it is a T20 or an ODI, has not started, and starts
   within the next 7 days.
 - Every request to the source counts against `CRICKET_DAILY_BUDGET` (default
-  90 a day, in UTC). When the budget is used up, or the source fails, what
+  90 a day, in UTC). The source charges 10 requests for the squads of a
+  match, so they count as 10, and they are asked for only from three days
+  before the match, when they are likely to be announced. Every answer of the
+  source says how many requests were used today; the count follows it when it
+  is higher. When the budget is used up, or the source fails, what
   is in the cache is used even if it is older, and the page says that the
   live data is as of an earlier time. Nothing is retried in a loop: after a
   failure of the source as a whole it is left alone for 5 minutes.
