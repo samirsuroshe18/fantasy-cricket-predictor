@@ -70,8 +70,8 @@ cricketdata.org (CricAPI v1), with the key in `CRICKET_API_KEY` on the server.
 
 | What | Kept for |
 |---|---|
-| The list of upcoming matches | 30 minutes |
-| The squads of a match | 6 hours |
+| The list of upcoming matches | 1 hour |
+| The squads of a match | 6 hours (1 hour while they are not announced) |
 | The career figures of a player | 14 days |
 
 - A match is listed when it is a T20 or an ODI, has not started, and starts
@@ -79,7 +79,13 @@ cricketdata.org (CricAPI v1), with the key in `CRICKET_API_KEY` on the server.
 - Every request to the source counts against `CRICKET_DAILY_BUDGET` (default
   90 a day, in UTC). When the budget is used up, or the source fails, what
   is in the cache is used even if it is older, and the page says that the
-  live data is as of an earlier time. Nothing is retried in a loop.
+  live data is as of an earlier time. Nothing is retried in a loop: after a
+  failure the source is left alone for 5 minutes.
+- Every player's figures are a request of their own, so the last 15 requests
+  of a day are kept for lists and squads. A player whose figures could not be
+  fetched is scored as a player without figures, and the page says how many
+  there are.
+- Only matches of the list are fetched: an id a visitor made up costs nothing.
 - Without a key the app shows the sample matches only and says so.
 
 ### Sample matches

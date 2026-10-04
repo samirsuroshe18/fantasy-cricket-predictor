@@ -36,10 +36,34 @@ const startOf = (value) => {
     return Date.parse(/(Z|[+-]\d{2}:?\d{2})$/.test(written) ? written : `${written}Z`);
 };
 
+// "Sydney Thunder [SYT]" is the name and its short form
+const namedTeam = (written, img) => {
+    const [, name = '', shortname = ''] = text(written, 80).match(/^(.*?)\s*(?:\[([^\]]*)\])?$/) || [];
+    return { name: name.trim(), shortname, img };
+};
+
+// The source's list of scores names a match's teams as t1 and t2 and says with "ms"
+// whether it is still a fixture. This gives such an entry the shape of the others.
+const fromScoreList = (raw) => {
+    const teamInfo = [namedTeam(raw.t1, raw.t1img), namedTeam(raw.t2, raw.t2img)];
+    const names = teamInfo.map((team) => team.name);
+    const series = text(raw.series, 60);
+
+    return {
+        ...raw,
+        name: names.every(Boolean) ? `${names[0]} vs ${names[1]}${series ? `, ${series}` : ''}` : '',
+        teams: names,
+        teamInfo,
+        matchStarted: raw.ms !== 'fixture',
+    };
+};
+
 // A match as the app lists it, or null when it is not one to list: not a T20 or an
 // ODI, already started, more than a week away, or not readable.
-const toMatch = (raw, now = Date.now()) => {
-    if (!raw || typeof raw !== 'object' || !isId(raw.id)) return null;
+const toMatch = (entry, now = Date.now()) => {
+    if (!entry || typeof entry !== 'object' || !isId(entry.id)) return null;
+
+    const raw = 't1' in entry || 't2' in entry ? fromScoreList(entry) : entry;
 
     const format = text(raw.matchType, 10).toLowerCase();
     if (!FORMATS.includes(format)) return null;

@@ -86,6 +86,54 @@ describe('a match', () => {
     });
 });
 
+describe('a match from the list of scores', () => {
+    const fixture = (changes = {}) => ({
+        id: '3c9a1b2e-0001-4000-8000-aaaaaaaaaaaa',
+        dateTimeGMT: '2026-03-02T08:15:00',
+        matchType: 't20',
+        status: 'Match not started',
+        ms: 'fixture',
+        t1: 'Sydney Thunder [SYT]',
+        t2: 'Perth Scorchers [PRS]',
+        t1s: '',
+        t2s: '',
+        t1img: 'https://g.cricapi.com/iapi/1-2.webp?w=48',
+        t2img: 'https://g.cricapi.com/iapi/3-4.webp?w=48',
+        series: 'Big Bash League 2025-26',
+        ...changes,
+    });
+
+    test('is read the same way: names without their short forms, which become the short names', () => {
+        expect(toMatch(fixture(), NOW)).toEqual({
+            id: '3c9a1b2e-0001-4000-8000-aaaaaaaaaaaa',
+            name: 'Sydney Thunder vs Perth Scorchers, Big Bash League 2025-26',
+            format: 't20',
+            startsAt: '2026-03-02T08:15:00.000Z',
+            venue: '',
+            teams: [
+                { name: 'Sydney Thunder', shortName: 'SYT', logo: 'https://g.cricapi.com/iapi/1-2.webp?w=48' },
+                { name: 'Perth Scorchers', shortName: 'PRS', logo: 'https://g.cricapi.com/iapi/3-4.webp?w=48' },
+            ],
+            isSample: false,
+        });
+    });
+
+    test('only a fixture is listed: not a match that is being played or is over', () => {
+        expect(toMatch(fixture({ ms: 'live' }), NOW)).toBeNull();
+        expect(toMatch(fixture({ ms: 'result' }), NOW)).toBeNull();
+    });
+
+    test('a team without a short form, or without a name, is handled', () => {
+        expect(toMatch(fixture({ t1: 'Nepal', series: undefined }), NOW)).toMatchObject({
+            name: 'Nepal vs Perth Scorchers',
+            teams: [{ name: 'Nepal', shortName: 'NEP' }, { name: 'Perth Scorchers', shortName: 'PRS' }],
+        });
+        expect(toMatch(fixture({ t1: '' }), NOW)).toBeNull();
+        expect(toMatch(fixture({ t2: 'Tbc [TBC]' }), NOW)).toBeNull();
+        expect(toMatch(fixture({ t1: { name: 'x' } }), NOW)).toBeNull();
+    });
+});
+
 describe('a role', () => {
     test('is one of four, whatever way the source writes it', () => {
         expect(roleOf('WK-Batsman')).toBe('wk');
