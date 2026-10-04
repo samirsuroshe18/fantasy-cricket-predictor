@@ -1,92 +1,97 @@
-import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import Modal from 'react-modal';
-import { Instagram, ExternalLink } from 'lucide-react';
-import  Logo from "../assets/cricket.jpg"
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../api/authApi';
+import { loggedOut } from '../redux/slices/authSlice';
+import useToast from '../lib/useToast';
+import logo from '../assets/cricket.jpg';
 
-Modal.setAppElement('#root');
+// "loggedIn" links are shown to a logged-in user only
+const LINKS = [
+  { name: 'Home', href: '/' },
+  { name: 'Matches', href: '/matches' },
+];
+
+const linkClass = ({ isActive }) =>
+  `${isActive ? 'text-emerald-950 underline underline-offset-4' : 'text-white'} font-medium hover:text-emerald-950 transition-colors`;
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { status, user } = useSelector((state) => state.auth);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const toast = useToast();
 
-  const userData = {
-    username: "hackhorizon.ai",
-    name: "Hack Horizon",
-    instagramHandle: "@hackhorizon.ai",
-    instagramUrl: "https://instagram.com/"
+  const isIn = status === 'in';
+  const links = LINKS.filter((link) => !link.loggedIn || isIn);
+  const close = () => setIsMenuOpen(false);
+
+  const logoutUser = async () => {
+    setLeaving(true);
+    try {
+      await logout();
+    } catch {
+      // the session may have ended already; the app logs out either way
+    }
+    dispatch(loggedOut());
+    close();
+    setLeaving(false);
+    toast.success('Logged out');
+    navigate('/');
   };
 
-
-  const getLinkStyle = ({ isActive }) => {
-    return isActive
-      ? "text-green-500"
-      : "text-white hover:text-purple-500 transition-colors";
-  };
+  const account = isIn ? (
+    <>
+      <span className="text-sm text-white truncate max-w-[12rem]" title={user.email}>{user.name}</span>
+      <button className="btn bg-white text-green-700 hover:bg-emerald-50" onClick={logoutUser} disabled={leaving}>Logout</button>
+    </>
+  ) : (
+    <>
+      <Link to="/login" onClick={close} className="btn text-white border border-white hover:bg-emerald-600">Login</Link>
+      <Link to="/register" onClick={close} className="btn bg-white text-green-700 hover:bg-emerald-50">Sign up</Link>
+    </>
+  );
 
   return (
-    <>
-      <nav className=" bg-emerald-500 text-white flex justify-between items-center p-4">
-        <Link to="/home">
-          <div className="text-2xl font-bold flex justify-center items-center space-x-2">
-            <img src={Logo} className='w-8 h-8 m-2' />
-            <span>Influence <sup className='p-[0.5px]'>IQ</sup></span>
-          </div>
+    <nav className="sticky top-0 z-40 bg-emerald-500 text-white shadow-sm">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <Link to="/" onClick={close} className="flex items-center gap-2 min-w-0">
+          <img src={logo} className="w-8 h-8 rounded-full shrink-0" alt="" />
+          <span className="text-lg sm:text-xl font-bold truncate">Fantasy Cricket Predictor</span>
         </Link>
-        <ul className="flex space-x-6 gap-12 text-md">
-          <li><NavLink to="/" className={getLinkStyle}>Home</NavLink></li>
-          <li><NavLink to="/Dashboard" className={getLinkStyle}>Matches</NavLink></li>
-          <li><NavLink to="/Squad" className={getLinkStyle}>Squads</NavLink></li>
-          <li><NavLink to="/Team" className={getLinkStyle}>Team</NavLink></li>
+
+        <ul className="hidden md:flex items-center gap-8">
+          {links.map((item) => (
+            <li key={item.href}><NavLink to={item.href} end={item.href === '/'} className={linkClass}>{item.name}</NavLink></li>
+          ))}
         </ul>
+
+        <div className="hidden md:flex items-center gap-3">{status !== 'checking' && account}</div>
+
         <button
-          onClick={() => setIsOpen(true)}
-          className="bg-white hover:bg-green-400 transition-colors px-4 py-2 rounded text-green-700 hover:text-white"
+          className="md:hidden p-2 -mr-2"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMenuOpen}
         >
-          Get Started
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
         </button>
-      </nav>
+      </div>
 
-      <Modal
-        isOpen={isOpen}
-        onRequestClose={() => setIsOpen(false)}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-6 w-80 shadow-xl"
-        overlayClassName="fixed inset-0 bg-black bg-opacity-50"
-      >
-        <div className="relative">
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute right-0 top-0 text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-
-          <div className="pt-4 space-y-4">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
-                {userData.username[0].toUpperCase()}
-              </div>
-              <h2 className="text-xl font-semibold">{userData.username}</h2>
-              <p className="text-gray-600">{userData.name}</p>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Instagram size={20} className="text-gray-600" />
-                <span className="text-gray-800">{userData.instagramHandle}</span>
-              </div>
-              <a
-                href={userData.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-500 hover:text-purple-600"
-              >
-                <ExternalLink size={20} />
-              </a>
-            </div>
-          </div>
+      {isMenuOpen && (
+        <div className="md:hidden border-t border-emerald-400 px-4 py-3 space-y-3">
+          <ul className="space-y-3">
+            {links.map((item) => (
+              <li key={item.href}><NavLink to={item.href} end={item.href === '/'} onClick={close} className={linkClass}>{item.name}</NavLink></li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap items-center gap-3">{status !== 'checking' && account}</div>
         </div>
-      </Modal>
-    </>
+      )}
+    </nav>
   );
 };
 
