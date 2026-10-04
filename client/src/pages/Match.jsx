@@ -74,6 +74,12 @@ const Match = () => {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800 break-words">{match.name}</h1>
         {match.venue && <p className="text-gray-600 mt-1">{match.venue}</p>}
         {match.isSample && <p className="text-sm text-gray-500 mt-2">A sample match: its teams, players and figures are made up, so the app can be tried at any time.</p>}
+        {hasPlayers && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Link to={`/matches/${match.id}/prediction`} className="btn-primary">Predict my eleven</Link>
+            <span className="text-sm text-gray-500">The best team the rules allow, with a captain and a vice-captain. Needs an account.</span>
+          </div>
+        )}
       </header>
 
       {note && <Note>{note}</Note>}

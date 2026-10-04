@@ -143,8 +143,9 @@ Rules of a valid team:
 - a captain and a vice-captain, two different players of the eleven
 
 The suggested team is the valid eleven with the highest sum of scores, found
-exactly, not by trial. Between equal sums the choice is fixed (by score, then
-name), so the same squads always give the same team. The captain is the
+exactly, not by trial. Of the equal players of one role on one side the first
+by name is taken, and between teams of equal sums the choice is fixed, so the
+same squads always give the same team. The captain is the
 player with the highest score, the vice-captain the next.
 
 When no valid team exists (for example no wicket-keeper is listed), the
@@ -163,7 +164,11 @@ answer says which rule cannot be met.
   nothing and gives the same text.
 - If Gemini fails, is not set up, or the site's `SITE_EXPLANATION_LIMIT`
   (default 200 a day) is used up, the team is shown without the text.
-- A user can ask for 20 predictions a day (`DAILY_PREDICTION_LIMIT`).
+- A user can ask for 20 predictions a day (`DAILY_PREDICTION_LIMIT`). Every
+  visitor of the demo account has that allowance of their own, and all of
+  them behind one real address together have 300.
+- A team whose explanation could not be written is not asked for again for 5
+  minutes.
 
 ## 8. Saved teams
 
@@ -207,7 +212,7 @@ All routes are under `/api/v1` and answer
 | `GET /verify/verify-email`, `GET /verify/reset-password`, `POST /verify/reset-password` | Links from emails |
 | `GET /matches` | `{ matches, live: { available, asOf, note } }` |
 | `GET /matches/:id` | The match with its squads and each player's score |
-| `POST /matches/:id/prediction` | `{ team, captainId, viceCaptainId, total, bench, explanation, remaining }` |
+| `POST /matches/:id/prediction` | `{ match, players, captainId, viceCaptainId, total, bench, explanation, remaining, note }` |
 | `GET /teams`, `POST /teams` | The user's saved teams; save one |
 | `GET /teams/:id`, `PUT /teams/:id`, `DELETE /teams/:id` | One saved team |
 

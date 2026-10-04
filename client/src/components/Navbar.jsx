@@ -10,6 +10,7 @@ import logo from '../assets/cricket.jpg';
 const LINKS = [
   { name: 'Home', href: '/' },
   { name: 'Matches', href: '/matches' },
+  { name: 'My teams', href: '/teams', loggedIn: true },
 ];
 
 const linkClass = ({ isActive }) =>
